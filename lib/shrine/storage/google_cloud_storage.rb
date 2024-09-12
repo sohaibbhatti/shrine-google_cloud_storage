@@ -46,7 +46,7 @@ class Shrine
 
             # update the additional options
             @object_options.merge(options).each_pair do |key, value|
-              f.send("#{key}=", value)
+              f.send("#{key}=", value) if key != :acl
             end
           end
           file
@@ -67,14 +67,14 @@ class Shrine
       end
 
       # URL to the remote file, accepts options for customizing the URL
-      def url(id, **options)
-        if options.key? :expires
-          signed_url = storage.signed_url(@bucket, object_name(id), **options)
-          signed_url.gsub!(/storage.googleapis.com\/#{@bucket}/, @host) if @host
-          signed_url
-        else
+      def url(id, public: false, **options)
+        if public
           host = @host || "storage.googleapis.com/#{@bucket}"
           "https://#{host}/#{Addressable::URI.encode_component(object_name(id), Addressable::URI::CharacterClasses::PATH)}"
+        else
+          signed_url = storage.signed_url(@bucket, object_name(id), **options.reverse_merge(expires: 7200)
+          signed_url.gsub!(/storage.googleapis.com\/#{@bucket}/, @host) if @host
+          signed_url
         end
       end
 
