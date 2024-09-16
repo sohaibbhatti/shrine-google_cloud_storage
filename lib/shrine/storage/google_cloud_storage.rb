@@ -57,10 +57,12 @@ class Shrine
               acl: options.fetch(:acl) { @default_acl }
             ).merge(options)
 
+            file.rewind
+
             get_bucket.create_file(
-                file,
-                object_name(id), # path
-                **file_options
+              file,
+              object_name(id), # path
+              **file_options
             )
           end
         end
@@ -72,6 +74,8 @@ class Shrine
           host = @host || "storage.googleapis.com/#{@bucket}"
           "https://#{host}/#{Addressable::URI.encode_component(object_name(id), Addressable::URI::CharacterClasses::PATH)}"
         else
+          options[:expires] = options.delete :expires_in
+
           signed_url = storage.signed_url(@bucket, object_name(id), **options.reverse_merge(expires: 7200))
           signed_url.gsub!(/storage.googleapis.com\/#{@bucket}/, @host) if @host
           signed_url
@@ -176,11 +180,13 @@ class Shrine
       end
 
       def with_file(io)
-        if io.respond_to?(:tempfile) # ActionDispatch::Http::UploadedFile
-          yield io.tempfile
-        else
-          Shrine.with_file(io) { |file| yield file }
-        end
+        #if io.respond_to?(:tempfile) # ActionDispatch::Http::UploadedFile
+          #yield io.tempfile
+        #else
+          #Shrine.with_file(io) { |file| yield file }
+        #end
+
+        Shrine.with_file(io) { |file| yield file }
       end
 
       # deletes file with ignoring NotFoundError
